@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0c0d1a">
+  <meta name="description" content="Đoán Từ Gián Điệp - trò chơi suy luận chuyền tay trên một thiết bị.">
+  <title>Đoán Từ Gián Điệp</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+
+  <!-- words.js nạp trước app.js vì app.js dùng hằng DEFAULT_WORD_PAIRS -->
+  <script src="words.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+<main class="app">
+
+  <!-- =====================================================
+       MÀN HÌNH 1: CÀI ĐẶT VÁN CHƠI
+       ===================================================== -->
+  <section id="screen-setup" class="screen is-active" aria-label="Cài đặt">
+    <header class="hero">
+      <div class="hero-badge" aria-hidden="true">🕵️</div>
+      <h1 class="hero-title">Đoán Từ <span>Gián Điệp</span></h1>
+      <p class="hero-sub">Ai trong số các bạn đang nói dối?</p>
+    </header>
+
+    <!-- Banner hiện khi có ván chơi dở (vd: lỡ tải lại trang) -->
+    <div id="resume-banner" class="banner" hidden>
+      <span>⏸️ Có một ván đang chơi dở.</span>
+      <div class="banner-actions">
+        <button type="button" class="btn btn-sm btn-ghost" id="btn-discard-game">Hủy ván</button>
+        <button type="button" class="btn btn-sm btn-primary" id="btn-resume-game">Tiếp tục</button>
+      </div>
+    </div>
+
+    <!-- Danh sách người chơi -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Người chơi</h2>
+        <span class="chip" id="player-count">0/10</span>
+      </div>
+      <ol id="player-list" class="player-list"></ol>
+      <button type="button" class="btn btn-dashed btn-block" id="btn-add-player">＋ Thêm người chơi</button>
+    </section>
+
+    <!-- Vai trò -->
+    <section class="panel">
+      <div class="panel-head"><h2>Vai trò</h2></div>
+
+      <div class="option-row">
+        <div class="option-text">
+          <strong>Số Gián điệp 🕵️</strong>
+          <small>Nhận từ khóa khác với Dân làng</small>
+        </div>
+        <div class="stepper">
+          <button type="button" class="stepper-btn" data-step="spyCount" data-delta="-1" aria-label="Giảm số Gián điệp">−</button>
+          <output id="out-spyCount" class="stepper-value">1</output>
+          <button type="button" class="stepper-btn" data-step="spyCount" data-delta="1" aria-label="Tăng số Gián điệp">+</button>
+        </div>
+      </div>
+
+      <div class="option-col">
+        <div class="option-text"><strong>Gián điệp nhận được</strong></div>
+        <div class="segmented" data-setting="spyMode" role="group" aria-label="Chế độ Gián điệp">
+          <button type="button" data-value="word">Một từ tương tự</button>
+          <button type="button" data-value="blank">Không có từ</button>
+        </div>
+      </div>
+
+      <!-- Chỉ hiện khi Gián điệp nhận từ tương tự -->
+      <label class="option-row" id="row-spyKnowsRole">
+        <div class="option-text">
+          <strong>Gián điệp biết vai trò</strong>
+          <small>Tắt: Gián điệp tưởng mình là Dân làng (khó hơn)</small>
+        </div>
+        <span class="switch">
+          <input type="checkbox" data-setting="spyKnowsRole">
+          <span class="switch-slider" aria-hidden="true"></span>
+        </span>
+      </label>
+
+      <label class="option-row">
+        <div class="option-text">
+          <strong>Mr. White 👻</strong>
+          <small>Không có từ, phải giả vờ như có. Bị loại được đoán từ để lật kèo.</small>
+        </div>
+        <span class="switch">
+          <input type="checkbox" data-setting="mrWhite">
+          <span class="switch-slider" aria-hidden="true"></span>
+        </span>
+      </label>
+
+      <p class="composition" id="composition"></p>
+    </section>
+
+    <!-- Tùy chọn ván chơi -->
+    <section class="panel">
+      <div class="panel-head"><h2>Ván chơi</h2></div>
+
+      <div class="option-row">
+        <div class="option-text">
+          <strong>Thời gian thảo luận</strong>
+          <small>Đếm ngược mỗi vòng</small>
+        </div>
+        <div class="stepper">
+          <button type="button" class="stepper-btn" data-step="timerSec" data-delta="-30" aria-label="Giảm thời gian">−</button>
+          <output id="out-timerSec" class="stepper-value stepper-value-wide">02:00</output>
+          <button type="button" class="stepper-btn" data-step="timerSec" data-delta="30" aria-label="Tăng thời gian">+</button>
+        </div>
+      </div>
+
+      <div class="option-col">
+        <div class="option-text"><strong>Cách xem từ bí mật</strong></div>
+        <div class="segmented" data-setting="revealMode" role="group" aria-label="Cách xem từ">
+          <button type="button" data-value="hold">✋ Nhấn giữ</button>
+          <button type="button" data-value="tap">👆 Chạm để lật</button>
+        </div>
+      </div>
+
+      <button type="button" class="link-row" id="btn-open-words">
+        <span>📚 Kho từ vựng</span>
+        <span class="muted"><span id="pool-count">0</span> cặp từ ›</span>
+      </button>
+    </section>
+
+    <!-- Luật chơi rút gọn -->
+    <details class="panel rules">
+      <summary>📜 Luật chơi</summary>
+      <ol>
+        <li>Mỗi người lần lượt cầm máy xem <b>từ bí mật</b> của mình. Dân làng có chung một từ, Gián điệp có từ gần giống (hoặc không có từ), Mr. White không có từ.</li>
+        <li>Theo thứ tự, mỗi người nói <b>một câu mô tả</b> từ của mình: đủ để đồng đội nhận ra, nhưng đừng để kẻ gian đoán được.</li>
+        <li>Hết giờ thảo luận, cả nhóm <b>bỏ phiếu loại</b> một người. Vai trò người bị loại sẽ được công khai.</li>
+        <li>Mr. White bị loại được <b>đoán từ của Dân làng</b>. Đoán đúng thì Mr. White thắng ngay.</li>
+        <li><b>Dân làng thắng</b> khi loại hết kẻ gian. <b>Kẻ gian thắng</b> khi số kẻ gian còn lại ≥ số Dân làng.</li>
+      </ol>
+    </details>
+
+    <div class="sticky-cta">
+      <p id="setup-error" class="form-error" role="alert" hidden></p>
+      <button type="button" class="btn btn-primary btn-lg btn-block" id="btn-start">Bắt đầu ván chơi</button>
+    </div>
+  </section>
+
+  <!-- =====================================================
+       MÀN HÌNH 1b: KHO TỪ VỰNG
+       ===================================================== -->
+  <section id="screen-words" class="screen" aria-label="Kho từ vựng">
+    <header class="topbar">
+      <button type="button" class="icon-btn" id="btn-words-back" aria-label="Quay lại">‹</button>
+      <span class="topbar-title">Kho từ vựng</span>
+      <span class="chip"><span id="words-total">0</span> cặp</span>
+    </header>
+
+    <section class="panel">
+      <label class="option-row">
+        <div class="option-text">
+          <strong>Dùng kho từ mặc định</strong>
+          <small><span id="default-count">0</span> cặp từ có sẵn</small>
+        </div>
+        <span class="switch">
+          <input type="checkbox" data-setting="useDefaultPairs">
+          <span class="switch-slider" aria-hidden="true"></span>
+        </span>
+      </label>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Thêm cặp từ mới</h2></div>
+      <form id="pair-form" class="pair-form" autocomplete="off" novalidate>
+        <input class="input" id="pair-a" maxlength="30" placeholder="Từ thứ nhất (vd: Trà sữa)" aria-label="Từ thứ nhất">
+        <span class="pair-sep" aria-hidden="true">↔</span>
+        <input class="input" id="pair-b" maxlength="30" placeholder="Từ thứ hai (vd: Cà phê)" aria-label="Từ thứ hai">
+        <button type="submit" class="btn btn-primary btn-block pair-submit">＋ Thêm cặp từ</button>
+      </form>
+      <p class="muted small">Hai từ nên cùng chủ đề và đủ giống nhau để gây nhầm lẫn. App sẽ ngẫu nhiên chọn từ nào cho Dân làng.</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Cặp từ của bạn</h2>
+        <span class="chip" id="custom-count">0</span>
+      </div>
+      <ul id="custom-list" class="pair-list"></ul>
+      <button type="button" class="btn btn-ghost btn-sm btn-block" id="btn-clear-custom" hidden>Xóa tất cả cặp từ tự thêm</button>
+    </section>
+
+    <details class="panel">
+      <summary>Xem kho từ mặc định</summary>
+      <ul id="default-list" class="pair-list"></ul>
+    </details>
+  </section>
+
+  <!-- =====================================================
+       MÀN HÌNH 2: CHUYỀN MÁY & XEM TỪ BÍ MẬT
+       ===================================================== -->
+  <section id="screen-reveal" class="screen" aria-label="Xem từ bí mật">
+    <header class="topbar">
+      <button type="button" class="icon-btn" data-action="quit" aria-label="Thoát ván">✕</button>
+      <span class="topbar-title">Phát từ bí mật</span>
+      <span class="chip" id="reveal-progress">1/1</span>
+    </header>
+    <div class="progress-dots" id="reveal-dots" aria-hidden="true"></div>
+
+    <!-- Bước A: yêu cầu chuyền máy -->
+    <div id="reveal-handoff" class="handoff">
+      <div class="handoff-icon" aria-hidden="true">📱</div>
+      <p class="muted">Chuyền máy cho</p>
+      <h2 class="handoff-name" id="handoff-name"></h2>
+      <p class="muted small">Đảm bảo không ai khác nhìn vào màn hình.</p>
+      <button type="button" class="btn btn-primary btn-lg btn-block" id="btn-ready">
+        Tôi là <span id="ready-name"></span>, xem từ
+      </button>
+    </div>
+
+    <!-- Bước B: thẻ bí mật (nhấn giữ / chạm để lật) -->
+    <div id="reveal-card" class="reveal-stage" hidden>
+      <p class="reveal-owner">Thẻ của <strong id="card-owner"></strong></p>
+      <div class="flip-card" id="secret-card" tabindex="0" role="button" aria-label="Thẻ bí mật">
+        <div class="flip-inner">
+          <div class="flip-face flip-front">
+            <div class="card-seal" aria-hidden="true">?</div>
+            <p class="card-hint" id="card-hint">Nhấn và giữ để xem</p>
+          </div>
+          <div class="flip-face flip-back" id="card-back"></div>
+        </div>
+      </div>
+      <p class="muted small center" id="card-subhint"></p>
+      <button type="button" class="btn btn-primary btn-lg btn-block" id="btn-next-player" disabled>Đã nhớ, chuyền máy</button>
+    </div>
+  </section>
+
+  <!-- =====================================================
+       MÀN HÌNH 3: THẢO LUẬN & BỎ PHIẾU
+       ===================================================== -->
+  <section id="screen-play" class="screen" aria-label="Thảo luận và bỏ phiếu">
+    <header class="topbar">
+      <button type="button" class="icon-btn" data-action="quit" aria-label="Thoát ván">✕</button>
+      <span class="topbar-title">Vòng <span id="round-num">1</span></span>
+      <span class="chip" id="alive-count">0 người</span>
+    </header>
+
+    <div class="status-row" id="status-row"></div>
+
+    <!-- Đồng hồ đếm ngược -->
+    <section class="panel timer-panel">
+      <div class="timer-ring" id="timer-ring">
+        <svg viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="ring-bg" cx="60" cy="60" r="54"></circle>
+          <circle class="ring-fg" id="ring-fg" cx="60" cy="60" r="54"></circle>
+        </svg>
+        <div class="timer-center">
+          <div class="timer-text" id="timer-text" role="timer" aria-live="off">02:00</div>
+          <small class="muted">Thảo luận</small>
+        </div>
+      </div>
+      <div class="timer-controls">
+        <button type="button" class="btn btn-ghost" id="btn-timer-reset" aria-label="Đặt lại đồng hồ">↺ Đặt lại</button>
+        <button type="button" class="btn btn-primary" id="btn-timer-toggle">▶ Bắt đầu</button>
+        <button type="button" class="btn btn-ghost" id="btn-timer-add">+30s</button>
+      </div>
+    </section>
+
+    <!-- Thứ tự mô tả -->
+    <section class="panel">
+      <div class="panel-head"><h2>Thứ tự mô tả</h2></div>
+      <ol id="speak-order" class="speak-order"></ol>
+      <p class="muted small">Mỗi người nói một câu mô tả từ khóa của mình, theo thứ tự trên.</p>
+    </section>
+
+    <!-- Bỏ phiếu -->
+    <section class="panel">
+      <div class="panel-head"><h2>Bỏ phiếu loại</h2></div>
+      <p class="muted small vote-hint">Chọn người bị nhiều phiếu nhất:</p>
+      <div id="vote-grid" class="vote-grid"></div>
+      <div class="vote-actions">
+        <button type="button" class="btn btn-ghost" id="btn-skip-round">Hòa phiếu, bỏ qua</button>
+        <button type="button" class="btn btn-danger" id="btn-eliminate" disabled>Loại người chơi</button>
+      </div>
+    </section>
+
+    <section class="panel" id="eliminated-panel" hidden>
+      <div class="panel-head"><h2>Đã bị loại</h2></div>
+      <ul id="eliminated-list" class="eliminated-list"></ul>
+    </section>
+  </section>
+
+  <!-- =====================================================
+       MÀN HÌNH 4: KẾT QUẢ
+       ===================================================== -->
+  <section id="screen-result" class="screen" aria-label="Kết quả">
+    <div class="result-hero" id="result-hero">
+      <div class="result-icon" id="result-icon" aria-hidden="true"></div>
+      <h1 class="result-title" id="result-title"></h1>
+      <p class="muted" id="result-reason"></p>
+    </div>
+
+    <section class="panel words-reveal">
+      <div class="word-box civ">
+        <small>Từ của Dân làng</small>
+        <strong id="result-civ-word"></strong>
+      </div>
+      <div class="word-box spy">
+        <small>Từ của Gián điệp</small>
+        <strong id="result-spy-word"></strong>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Danh tính người chơi</h2></div>
+      <ul id="result-players" class="result-players"></ul>
+    </section>
+
+    <div class="stack">
+      <button type="button" class="btn btn-primary btn-lg btn-block" id="btn-play-again">🔁 Chơi ván mới</button>
+      <button type="button" class="btn btn-ghost btn-block" id="btn-back-setup">⚙️ Về màn hình cài đặt</button>
+    </div>
+  </section>
+
+</main>
+
+<!-- Hộp thoại dùng chung (xác nhận, công bố vai trò, Mr. White đoán từ...) -->
+<div id="modal" class="modal" hidden>
+  <div class="modal-backdrop" data-modal-backdrop></div>
+  <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-icon" id="modal-icon" aria-hidden="true"></div>
+    <h2 class="modal-title" id="modal-title"></h2>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<!-- Thông báo ngắn -->
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+</body>
+</html>
